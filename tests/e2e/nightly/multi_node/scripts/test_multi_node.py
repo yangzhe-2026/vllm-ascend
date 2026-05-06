@@ -2,8 +2,6 @@ import json
 import logging
 import os
 import shlex
-import subprocess
-import sys
 from typing import Any
 
 import pytest
@@ -260,16 +258,6 @@ def _save_benchmark_results_json(config: MultiNodeConfig, results: list[Any]) ->
 @pytest.mark.asyncio
 async def test_multi_node() -> None:
     config = MultiNodeConfigLoader.from_yaml()
-    if config.special_dependencies:
-        for k, v in config.special_dependencies.items():
-            command = [
-                sys.executable,
-                "-m",
-                "pip",
-                "install",
-                f"{k}=={v}",
-            ]
-            subprocess.call(command)
 
     with (
         ProxyLauncher(
