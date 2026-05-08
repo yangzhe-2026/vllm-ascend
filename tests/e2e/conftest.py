@@ -177,6 +177,31 @@ def cleanup_dist_env_and_memory(shutdown_ray: bool = False):
         torch.npu.empty_cache()
         torch.npu.reset_peak_memory_stats()
 
+    # Defensive cleanup: remove leftover POSIX shared memory segments
+    # created by metadata/kv transfer servers to avoid resource_tracker warnings
+    try:
+        from multiprocessing.shared_memory import SharedMemory
+
+        shm_dir = "/dev/shm"
+        if os.path.exists(shm_dir):
+            for name in os.listdir(shm_dir):
+                if not name.startswith("cpu_kv_cache_"):
+                    continue
+                try:
+                    SharedMemory(name=name).unlink()
+                except FileNotFoundError:
+                    pass
+                except Exception:
+                    try:
+                        os.unlink(os.path.join(shm_dir, name))
+                    except Exception:
+                        pass
+    except Exception:
+        try:
+            logger.debug("Extra shm cleanup failed", exc_info=True)
+        except Exception:
+            pass
+
 
 class MooncakeLauncher:
     def __init__(
